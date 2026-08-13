@@ -12,10 +12,66 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ReservationStatus {
+  ACTIVE
+  EXPIRED
+  COMPLETED
+}
+
 model User {
   id        String   @id @default(uuid())
   username  String   @unique
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  reservations Reservation[]
+  purchases    Purchase[]
+}
+
+model Drop {
+  id             String   @id @default(uuid())
+  name           String
+  price          Decimal  @db.Decimal(10, 2)
+  totalStock     Int
+  availableStock Int
+  startsAt       DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  reservations Reservation[]
+  purchases    Purchase[]
+}
+
+model Reservation {
+  id        String            @id @default(uuid())
+  status    ReservationStatus @default(ACTIVE)
+  expiresAt DateTime
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  dropId String
+  drop   Drop   @relation(fields: [dropId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  purchase Purchase?
+
+  @@index([status, expiresAt])
+}
+
+model Purchase {
+  id          String   @id @default(uuid())
+  price       Decimal  @db.Decimal(10, 2)
+  purchasedAt DateTime @default(now())
+
+  dropId String
+  drop   Drop   @relation(fields: [dropId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  reservationId String      @unique
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
 }

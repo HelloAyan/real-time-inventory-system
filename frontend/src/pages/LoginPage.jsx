@@ -65,7 +65,7 @@ export default function LoginPage() {
           id="username"
           label="Username"
           autoComplete="off"
-          placeholder="ayanrabbi"
+          placeholder=""
           value={form.username}
           onChange={handleChange('username')}
           error={fieldErrors.username}

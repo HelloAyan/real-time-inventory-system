@@ -12,7 +12,7 @@ export default function DropCard({ drop }) {
       </div>
 
       <span className="inline-flex w-fit items-center rounded-md border border-warning-border bg-warning-bg px-3 py-1.5 text-sm font-medium text-warning-ink">
-        Total Stock: {stock}
+        Available Stock: {stock}
       </span>
 
       <span className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-success">
