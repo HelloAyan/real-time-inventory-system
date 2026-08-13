@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { api } from '../../lib/api'
+import { isTokenExpired } from '../../lib/jwt'
 
 // Placeholder paths — point these at the real backend routes when they exist.
 export const AUTH_ENDPOINTS = {
@@ -35,9 +36,18 @@ export const signupUser = createAsyncThunk(
   },
 )
 
+function loadPersistedAuth() {
+  const token = localStorage.getItem('token')
+  if (token && !isTokenExpired(token)) {
+    return { token, user: JSON.parse(localStorage.getItem('user') || 'null') }
+  }
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  return { token: null, user: null }
+}
+
 const initialState = {
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
-  token: localStorage.getItem('token'),
+  ...loadPersistedAuth(),
   status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
   error: null,
 }
