@@ -28,3 +28,10 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
+
+# AI coding tools
+.agents/
+.claude/
+.windsurf/
+
+/generated/prisma
