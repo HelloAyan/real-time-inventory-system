@@ -1,31 +1,95 @@
+@import "tailwindcss";
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Surfaces */
+  --bg:             #fbfbf9;
+  --surface:        #ffffff;
+  --surface-sunk:   #f6f5f2;
+  --placeholder:    #f1efe9;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Borders */
+  --border:         #ebe9e3;
+  --border-soft:    #f0eee8;
+  --border-strong:  #c9c6bd;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  /* Text */
+  --ink:            #16150f;
+  --ink-inverse:    #fbfbf9;
+  --text:           #4a4840;
+  --text-muted:     #7a7870;
+  --text-faint:     #a8a59b;
+
+  /* Status */
+  --success:        #2f6b4a;
+  --warning:        #c99b2e;
+  --warning-ink:    #8a6d1e;
+  --warning-bg:     #fdfaf1;
+  --warning-border: #eee1bd;
+  --danger:         #b0432f;
+
+  /* Accents */
+  --selection:      #e4ecd9;
+  --flash:          #f2f6ec;
+
+  /* Radius (raw scale, mirrored into Tailwind's --radius-* below) */
+  --r-sm:   8px;
+  --r-md:   11px;
+  --r-lg:   14px;
+  --r-pill: 999px;
+
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
+  font: 16px/145% var(--font-sans);
+  letter-spacing: 0.1px;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+/*
+ * Bridges the brand tokens above into Tailwind's theme namespaces so
+ * utilities like bg-surface, text-ink-muted, rounded-md, shadow-pop,
+ * font-sans/font-mono all resolve to the same source-of-truth values.
+ */
+@theme {
+  --color-bg:             var(--bg);
+  --color-surface:        var(--surface);
+  --color-surface-sunk:   var(--surface-sunk);
+  --color-placeholder:    var(--placeholder);
+
+  --color-border:         var(--border);
+  --color-border-soft:    var(--border-soft);
+  --color-border-strong:  var(--border-strong);
+
+  --color-ink:            var(--ink);
+  --color-ink-inverse:    var(--ink-inverse);
+  --color-text:           var(--text);
+  --color-text-muted:     var(--text-muted);
+  --color-text-faint:     var(--text-faint);
+
+  --color-success:        var(--success);
+  --color-warning:        var(--warning);
+  --color-warning-ink:    var(--warning-ink);
+  --color-warning-bg:     var(--warning-bg);
+  --color-warning-border: var(--warning-border);
+  --color-danger:         var(--danger);
+
+  --color-selection:      var(--selection);
+  --color-flash:          var(--flash);
+
+  --font-sans: 'Inter Tight', Helvetica, Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --radius-sm:   var(--r-sm);
+  --radius-md:   var(--r-md);
+  --radius-lg:   var(--r-lg);
+  --radius-pill: var(--r-pill);
+
+  --shadow-pop: 0 8px 28px rgba(22, 21, 15, .09);
+}
+
+::selection {
+  background: var(--selection);
 }
