@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import toast from 'react-hot-toast'
 import Button from '../ui/Button'
+import { isDropLive } from '../../lib/dropStatus'
 import { fetchDrops } from '../../features/drops/dropsSlice'
 import {
   expireReservation,
@@ -34,7 +35,7 @@ export default function DropCard({ drop }) {
   const isPurchasing = useSelector((state) => state.reservations.purchasingDropId === id)
 
   const [secondsLeft, setSecondsLeft] = useState(0)
-  const [hasStarted, setHasStarted] = useState(() => new Date(startsAt) <= new Date())
+  const [hasStarted, setHasStarted] = useState(() => isDropLive(startsAt))
 
   useEffect(() => {
     if (hasStarted) return

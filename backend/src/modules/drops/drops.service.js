@@ -13,15 +13,30 @@ export const createDrop = async ({ name, price, totalStock, startsAt }) => {
 };
 
 export const listDrops = async () => {
-  const drops = await prisma.drop.findMany({
-    include: {
-      purchases: {
-        orderBy: { purchasedAt: "desc" },
-        take: 3,
-        include: { user: { select: { username: true } } },
-      },
+  const now = new Date();
+
+  const purchasersInclude = {
+    purchases: {
+      orderBy: { purchasedAt: "desc" },
+      take: 3,
+      include: { user: { select: { username: true } } },
     },
-  });
+  };
+
+  const [liveDrops, upcomingDrops] = await Promise.all([
+    prisma.drop.findMany({
+      where: { startsAt: { lte: now } },
+      orderBy: { startsAt: "desc" },
+      include: purchasersInclude,
+    }),
+    prisma.drop.findMany({
+      where: { startsAt: { gt: now } },
+      orderBy: { startsAt: "asc" },
+      include: purchasersInclude,
+    }),
+  ]);
+
+  const drops = [...liveDrops, ...upcomingDrops];
 
   return drops.map(({ purchases, ...drop }) => ({
     ...drop,
