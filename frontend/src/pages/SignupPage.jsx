@@ -27,7 +27,6 @@ export default function SignupPage() {
     if (!form.name) errors.name = 'Name is required'
     else if (form.name.length < 3) errors.name = 'At least 3 characters'
     if (!form.password) errors.password = 'Password is required'
-    else if (form.password.length < 8) errors.password = 'At least 8 characters'
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
