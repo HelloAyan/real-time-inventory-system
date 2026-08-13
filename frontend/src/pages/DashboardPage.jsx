@@ -4,11 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import Header from '../components/layout/Header'
 import DropCard from '../components/dashboard/DropCard'
+import DropSocketWatcher from '../components/dashboard/DropSocketWatcher'
 import NewDropModal from '../components/dashboard/NewDropModal'
 import { logout } from '../features/auth/authSlice'
 import { fetchDrops } from '../features/drops/dropsSlice'
-
-const POLL_INTERVAL_MS = 5000
 
 export default function DashboardPage() {
   const dispatch = useDispatch()
@@ -20,8 +19,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     dispatch(fetchDrops())
-    const interval = setInterval(() => dispatch(fetchDrops()), POLL_INTERVAL_MS)
-    return () => clearInterval(interval)
   }, [dispatch])
 
   const handleLogout = () => {
@@ -32,6 +29,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-bg">
+      <DropSocketWatcher />
       <Header
         userName={userName}
         onLogout={handleLogout}

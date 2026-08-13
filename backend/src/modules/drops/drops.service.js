@@ -14,8 +14,6 @@ export const createDrop = async ({ name, price, totalStock, startsAt }) => {
 
 export const listDrops = async () => {
   const drops = await prisma.drop.findMany({
-    where: { startsAt: { lte: new Date() } },
-    orderBy: { startsAt: "desc" },
     include: {
       purchases: {
         orderBy: { purchasedAt: "desc" },

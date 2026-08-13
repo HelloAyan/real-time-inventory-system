@@ -40,7 +40,21 @@ const dropsSlice = createSlice({
       })
       .addCase(fetchDrops.fulfilled, (state, action) => {
         state.status = 'succeeded'
-        state.items = action.payload
+
+        // Merge by id instead of replacing the array outright — the API
+        // doesn't guarantee stable ordering between calls, and swapping the
+        // whole array on every poll/socket refresh made cards jump around
+        // on screen. Keep existing cards in their current position and
+        // only append drops we haven't seen yet.
+        const incomingById = new Map(action.payload.map((drop) => [drop.id, drop]))
+        const updated = state.items
+          .filter((drop) => incomingById.has(drop.id))
+          .map((drop) => incomingById.get(drop.id))
+
+        const existingIds = new Set(state.items.map((drop) => drop.id))
+        const newDrops = action.payload.filter((drop) => !existingIds.has(drop.id))
+
+        state.items = [...updated, ...newDrops]
       })
       .addCase(fetchDrops.rejected, (state, action) => {
         state.status = 'failed'

@@ -9,15 +9,24 @@ import {
   reserveDrop,
 } from '../../features/reservations/reservationsSlice'
 
+const RESERVATION_DURATION_SECONDS = 60
+
 function formatCountdown(seconds) {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
 }
 
+function formatStartsAt(dateString) {
+  return new Date(dateString).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
 export default function DropCard({ drop }) {
   const dispatch = useDispatch()
-  const { id, name, price, availableStock, recentPurchasers } = drop
+  const { id, name, price, availableStock, startsAt, recentPurchasers } = drop
   const soldOut = availableStock === 0
 
   const reservation = useSelector((state) => state.reservations.byDropId[id])
@@ -25,6 +34,15 @@ export default function DropCard({ drop }) {
   const isPurchasing = useSelector((state) => state.reservations.purchasingDropId === id)
 
   const [secondsLeft, setSecondsLeft] = useState(0)
+  const [hasStarted, setHasStarted] = useState(() => new Date(startsAt) <= new Date())
+
+  useEffect(() => {
+    if (hasStarted) return
+
+    const msUntilStart = Math.max(new Date(startsAt).getTime() - Date.now(), 0)
+    const timer = setTimeout(() => setHasStarted(true), msUntilStart)
+    return () => clearTimeout(timer)
+  }, [startsAt, hasStarted])
 
   useEffect(() => {
     if (!reservation) return
@@ -32,18 +50,12 @@ export default function DropCard({ drop }) {
     const tick = () => {
       const remaining = Math.round((new Date(reservation.expiresAt).getTime() - Date.now()) / 1000)
       setSecondsLeft(Math.max(remaining, 0))
-
-      if (remaining <= 0) {
-        dispatch(expireReservation(id))
-        toast.error(`Your reservation for ${name} expired`)
-        dispatch(fetchDrops())
-      }
     }
 
     tick()
     const interval = setInterval(tick, 1000)
     return () => clearInterval(interval)
-  }, [reservation, id, name, dispatch])
+  }, [reservation])
 
   const handleReserve = async () => {
     const result = await dispatch(reserveDrop(id))
@@ -79,10 +91,16 @@ export default function DropCard({ drop }) {
         Available Stock: {availableStock}
       </span>
 
-      <span className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-success">
-        <span className="h-1.5 w-1.5 rounded-full bg-success" />
-        Live
-      </span>
+      {hasStarted ? (
+        <span className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-success">
+          <span className="h-1.5 w-1.5 rounded-full bg-success" />
+          Live
+        </span>
+      ) : (
+        <span className="inline-flex w-fit items-center text-xs font-medium text-text-muted">
+          Starts {formatStartsAt(startsAt)}
+        </span>
+      )}
 
       <div>
         <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-text-faint">
@@ -106,10 +124,17 @@ export default function DropCard({ drop }) {
       </div>
 
       {reservation ? (
-        <div className="mt-auto flex flex-col gap-2">
-          <p className="text-center text-xs font-medium text-text-muted">
-            Reserved — {formatCountdown(secondsLeft)} left
-          </p>
+        <div className="mt-auto flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-xs font-medium text-text-muted">
+            <span>Reserved</span>
+            <span className="tabular-nums text-ink">{formatCountdown(secondsLeft)}</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-pill bg-surface-sunk">
+            <div
+              className="h-full rounded-pill bg-danger transition-[width] duration-1000 ease-linear"
+              style={{ width: `${(secondsLeft / RESERVATION_DURATION_SECONDS) * 100}%` }}
+            />
+          </div>
           <Button onClick={handlePurchase} loading={isPurchasing}>
             Complete Purchase
           </Button>
@@ -117,11 +142,11 @@ export default function DropCard({ drop }) {
       ) : (
         <Button
           onClick={handleReserve}
-          disabled={soldOut}
+          disabled={soldOut || !hasStarted}
           loading={isReserving}
           className="mt-auto"
         >
-          {soldOut ? 'Sold Out' : 'Reserve'}
+          {!hasStarted ? 'Not Started Yet' : soldOut ? 'Sold Out' : 'Reserve'}
         </Button>
       )}
     </article>
