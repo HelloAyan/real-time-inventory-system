@@ -6,10 +6,10 @@ export const signupSchema = z.object({
     .trim()
     .min(3, "Name must be at least 3 characters")
     .max(30, "Name must be at most 30 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string(),
 });
 
 export const loginSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
-  password: z.string().min(1, "Password is required"),
+  password: z.string(),
 });
