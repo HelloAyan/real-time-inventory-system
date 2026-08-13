@@ -12,7 +12,7 @@ export const protect = (req, res, next) => {
 
   try {
     const payload = verifyToken(token);
-    req.user = { id: payload.sub, name: payload.name };
+    req.user = { id: payload.sub, username: payload.username };
     next();
   } catch {
     throw new ApiError(401, "Invalid or expired token");

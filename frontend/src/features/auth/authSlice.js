@@ -10,9 +10,9 @@ export const AUTH_ENDPOINTS = {
 
 export const loginUser = createAsyncThunk(
   'auth/login',
-  async ({ name, password }, { rejectWithValue }) => {
+  async ({ username, password }, { rejectWithValue }) => {
     try {
-      const { data } = await api.post(AUTH_ENDPOINTS.login, { name, password })
+      const { data } = await api.post(AUTH_ENDPOINTS.login, { username, password })
       return data
     } catch (err) {
       return rejectWithValue(
@@ -24,9 +24,9 @@ export const loginUser = createAsyncThunk(
 
 export const signupUser = createAsyncThunk(
   'auth/signup',
-  async ({ name, password }, { rejectWithValue }) => {
+  async ({ username, password }, { rejectWithValue }) => {
     try {
-      const { data } = await api.post(AUTH_ENDPOINTS.signup, { name, password })
+      const { data } = await api.post(AUTH_ENDPOINTS.signup, { username, password })
       return data
     } catch (err) {
       return rejectWithValue(

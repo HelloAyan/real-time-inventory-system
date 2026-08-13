@@ -14,7 +14,7 @@ export default function SignupPage() {
   const status = useSelector((state) => state.auth.status)
   const isLoading = status === 'loading'
 
-  const [form, setForm] = useState({ name: '', password: '' })
+  const [form, setForm] = useState({ username: '', password: '' })
   const [fieldErrors, setFieldErrors] = useState({})
 
   const handleChange = (field) => (e) => {
@@ -24,8 +24,8 @@ export default function SignupPage() {
 
   const validate = () => {
     const errors = {}
-    if (!form.name) errors.name = 'Name is required'
-    else if (form.name.length < 3) errors.name = 'At least 3 characters'
+    if (!form.username) errors.username = 'Username is required'
+    else if (form.username.length < 3) errors.username = 'At least 3 characters'
     if (!form.password) errors.password = 'Password is required'
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
@@ -63,13 +63,13 @@ export default function SignupPage() {
     >
       <form onSubmit={handleSubmit} noValidate autoComplete="off" className="flex flex-col gap-4">
         <TextField
-          id="name"
-          label="Name"
+          id="username"
+          label="Username"
           autoComplete="off"
-          placeholder="John Doe"
-          value={form.name}
-          onChange={handleChange('name')}
-          error={fieldErrors.name}
+          placeholder="ayanrabbi"
+          value={form.username}
+          onChange={handleChange('username')}
+          error={fieldErrors.username}
         />
         <PasswordField
           id="password"
