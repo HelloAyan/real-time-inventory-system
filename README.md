@@ -20,7 +20,7 @@ Add a `.env`:
 ```env
 PORT=5000
 DATABASE_URL="postgresql://DB_USERNAME:DB_PASSWORD@localhost:5432/DB_NAME"
-CLIENT_URL="http://localhost:5173"
+CLIENT_URL="https://real-time-inventory-system-nu.vercel.app"
 JWT_SECRET="anything-long-and-random"
 JWT_EXPIRES_IN="7d"
 ```
@@ -44,14 +44,14 @@ npm install
 `.env`:
 
 ```env
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=https://real-inventory-kuvy.onrender.com/api
 ```
 
 ```bash
 npm run dev
 ```
 
-Open `localhost:5173` in two tabs and reserve/purchase from one — the other updates live.
+Open `https://real-time-inventory-system-nu.vercel.app` in two tabs and reserve/purchase from one — the other updates live.
 
 ## Schema
 
@@ -91,7 +91,7 @@ Errors are `{ success: false, message, details? }`. 409 covers most of the inter
 There's no admin UI on purpose (per the spec), so this is how you'd actually seed a new drop for testing:
 
 1. **Method:** `POST`
-2. **URL:** `http://localhost:5000/api/drops`
+2. **URL:** `https://real-inventory-kuvy.onrender.com/api/drops`
 3. **Headers:** `Content-Type: application/json` (no auth needed for this one)
 4. **Body → raw → JSON:**
 
