@@ -86,6 +86,33 @@ Reservation                 Purchase
 
 Errors are `{ success: false, message, details? }`. 409 covers most of the interesting cases — out of stock, drop not started yet, reservation expired, already purchased.
 
+### Creating a Drop through Postman
+
+There's no admin UI on purpose (per the spec), so this is how you'd actually seed a new drop for testing:
+
+1. **Method:** `POST`
+2. **URL:** `http://localhost:5000/api/drops`
+3. **Headers:** `Content-Type: application/json` (no auth needed for this one)
+4. **Body → raw → JSON:**
+
+```json
+{
+  "name": "Air Jordan 1",
+  "price": 199.99,
+  "totalStock": 100,
+  "startsAt": "2026-08-20T10:00:00Z"
+}
+```
+
+| Field | Type | Required? | Notes |
+|---|---|---|---|
+| `name` | string | yes | drop title, shows up on the dashboard card |
+| `price` | number | yes | in the app's currency, e.g. `199.99` |
+| `totalStock` | integer | yes | how many units this drop has — `availableStock` gets set to this same number automatically |
+| `startsAt` | ISO date string | no | when the drop goes live. Leave it out and it defaults to right now |
+
+Hit Send and you should get a `201` back with the full drop object, `availableStock` already equal to `totalStock`. If `startsAt` is in the future, the drop still gets created — it just shows as "not started yet" on the dashboard and can't be reserved until that time passes.
+
 **Socket events**, same origin as the API:
 - `stock:updated` — `{ dropId, availableStock }`
 - `reservation:expired` — `{ reservationId, dropId }`
