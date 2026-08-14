@@ -1,56 +1,47 @@
 # Real-Time High-Traffic Inventory System
 
-A "Limited Edition Sneaker Drop" platform — users see live stock counts, reserve an item for a 60-second checkout window, and complete (or lose) that reservation, all synced instantly across every open browser tab via WebSockets.
+A "Limited Edition Sneaker Drop" app — users see live stock counts, reserve an item for a 60-second checkout window, and either complete the purchase or lose the reservation. All of it stays in sync across every open tab through WebSockets.
 
-## Stack
+**Stack:** React + Redux Toolkit on the frontend, Node/Express on the backend, PostgreSQL via Prisma, Socket.io for real-time, JWT for auth.
 
-| | |
-|---|---|
-| Frontend | React (Vite) + Redux Toolkit, Tailwind CSS, Socket.io client |
-| Backend | Node.js + Express |
-| Database | PostgreSQL |
-| ORM | Prisma 7 (driver-adapter based) |
-| Real-time | Socket.io |
-| Auth | JWT + bcrypt |
+I went with Prisma instead of Sequelize (the recommended ORM) mostly because I'm faster in it and the nested-query support made the "top 3 purchasers per drop" requirement pretty painless — it's just an `include` with `orderBy` + `take: 3`, no manual joins.
 
-## How to run the app
+## Running it locally
 
-### 1. Backend
+**Backend**
 
 ```bash
 cd backend
 npm install
 ```
 
-Create `backend/.env`:
+Add a `.env`:
 
 ```env
 PORT=5000
 DATABASE_URL="postgresql://DB_USERNAME:DB_PASSWORD@localhost:5432/DB_NAME"
 CLIENT_URL="http://localhost:5173"
-JWT_SECRET="a-long-random-string"
+JWT_SECRET="anything-long-and-random"
 JWT_EXPIRES_IN="7d"
 ```
 
-Set up the database schema (Prisma migrations — no manual SQL needed):
+Then:
 
 ```bash
-npx prisma migrate dev
+npx prisma migrate dev   # builds the schema, no manual SQL needed
 npx prisma generate
-npx prisma db seed     # optional — 10 sample sneaker drops
+npx prisma db seed       # optional, drops 10 sample sneakers in
 npm run dev
 ```
 
-Backend runs on `http://localhost:5000`, with Socket.io attached to the same HTTP server.
-
-### 2. Frontend
+**Frontend**
 
 ```bash
 cd frontend
 npm install
 ```
 
-Create `frontend/.env`:
+`.env`:
 
 ```env
 VITE_API_URL=http://localhost:5000/api
@@ -60,79 +51,67 @@ VITE_API_URL=http://localhost:5000/api
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`. Open it in two browser tabs side by side to see real-time stock sync.
+Open `localhost:5173` in two tabs and reserve/purchase from one — the other updates live.
 
-## SQL Schema
+## Schema
 
-Managed entirely through Prisma migrations (`npx prisma migrate dev` above creates these). Four tables:
+Four tables, all created through Prisma migrations:
 
 ```
 User                        Drop
- id (uuid, pk)                id (uuid, pk)
- username (unique)            name
- password (hashed)            price
- createdAt / updatedAt        totalStock
-                               availableStock
-                               startsAt
-                               createdAt / updatedAt
+ id                          id
+ username (unique)           name
+ password (hashed)           price
+                              totalStock       ← fixed at creation
+                              availableStock   ← live counter
 
-Reservation                  Purchase
- id (uuid, pk)                 id (uuid, pk)
- status (ACTIVE /              price
-   EXPIRED / COMPLETED)        purchasedAt
- expiresAt                     dropId → Drop
- dropId → Drop                  userId → User
- userId → User                  reservationId → Reservation (1:1, unique)
- createdAt / updatedAt
+Reservation                 Purchase
+ id                          id
+ status: ACTIVE /            price
+   EXPIRED / COMPLETED       purchasedAt
+ expiresAt                   dropId  → Drop
+ dropId  → Drop                userId  → User
+ userId  → User                reservationId → Reservation (unique, 1:1)
 ```
 
-`availableStock` is the live counter — decremented on reserve, restored on expiry, permanently reduced on purchase. `totalStock` is fixed at creation and never changes.
+`availableStock` is what actually moves: minus 1 on reserve, plus 1 back on expiry, and it just stays down after a purchase (nothing to add back).
 
-## API Reference
+## API
 
-| Method | Route | Auth | Description |
-|---|---|---|---|
-| POST | `/api/auth/signup` | — | `{ username, password }` → `{ user, token }` |
-| POST | `/api/auth/login` | — | `{ username, password }` → `{ user, token }` |
-| POST | `/api/drops` | — | `{ name, price, totalStock, startsAt? }` → creates a drop |
-| GET | `/api/drops` | — | Lists all drops, each with nested `recentPurchasers` (top 3, latest first) |
-| POST | `/api/reservations` | Bearer token | `{ dropId }` → reserves 1 unit for 60s |
-| POST | `/api/reservations/:id/purchase` | Bearer token | Completes the purchase for that reservation |
+- `POST /api/auth/signup`, `POST /api/auth/login` — `{ username, password }` → `{ user, token }`
+- `POST /api/drops` — `{ name, price, totalStock, startsAt? }`
+- `GET /api/drops` — list, each drop comes with `recentPurchasers` (last 3 buyers, username + timestamp)
+- `POST /api/reservations` *(auth required)* — `{ dropId }`, reserves for 60s
+- `POST /api/reservations/:id/purchase` *(auth required)* — completes it
 
-Error shape: `{ success: false, message, details? }`. Status codes: `400` validation, `401` auth, `403` not your reservation, `404` not found, `409` conflict (out of stock, drop hasn't started, reservation expired/already completed).
+Errors are `{ success: false, message, details? }`. 409 covers most of the interesting cases — out of stock, drop not started yet, reservation expired, already purchased.
 
-### WebSocket events
+**Socket events**, same origin as the API:
+- `stock:updated` — `{ dropId, availableStock }`
+- `reservation:expired` — `{ reservationId, dropId }`
+- `purchase:new` — `{ dropId, username, purchasedAt }`
 
-| Event | Payload | Fires when |
-|---|---|---|
-| `stock:updated` | `{ dropId, availableStock }` | A reservation is made or expires |
-| `reservation:expired` | `{ reservationId, dropId }` | A reservation's 60s window passes unused |
-| `purchase:new` | `{ dropId, username, purchasedAt }` | A purchase completes (drives the activity feed) |
+## The 60-second expiry — how it actually works
 
-## Architecture Choice: how the 60-second expiration is handled
+This was the part I went back and forth on. A single `setTimeout` per reservation is the obvious first approach and it's what fires the expiry in practice — scheduled the moment someone reserves, goes off exactly 60s later. But it's in-memory, so if the server restarts with reservations still active, those timers are just gone and that stock stays reserved forever. Not acceptable for something that's supposed to self-heal.
 
-Two layers work together, not one:
+So there's a second layer: a sweep that runs every 5 seconds and asks the DB directly for any `ACTIVE` reservation whose `expiresAt` is already in the past, and expires those too. It's the boring correctness net under the fast path.
 
-1. **A `setTimeout` per reservation** ([`reservations.service.js`](backend/src/modules/reservations/reservations.service.js)) — scheduled the instant a reservation is created, fires exactly 60s later for precise, real-time expiry.
-2. **A background sweep** ([`jobs/reservationSweep.job.js`](backend/src/jobs/reservationSweep.job.js)) — polls every 5 seconds for any `ACTIVE` reservation whose `expiresAt` has already passed.
-
-The `setTimeout` alone isn't reliable on its own: it's in-memory, so a server restart loses every pending timer and stock stays locked up forever. The sweep is a restart-safe correctness guarantee that catches anything the timer missed. The `setTimeout` still matters on top of the sweep — it's what keeps expiry feeling instant instead of "up to 5 seconds late."
-
-Both paths call the same `expireReservation()` function, guarded by a conditional update so they can never double-process the same reservation:
+Both routes end up calling the same `expireReservation()`, and it's written so it can't double-fire:
 
 ```js
 const { count } = await tx.reservation.updateMany({
   where: { id: reservationId, status: "ACTIVE" },
   data: { status: "EXPIRED" },
 });
-if (count === 0) return; // the other layer already handled it
+if (count === 0) return; // someone/something already got to it
 ```
 
-Whichever layer reaches the row first flips its status; the other sees `count === 0` and does nothing — stock is only ever restored once, and `stock:updated` / `reservation:expired` only ever broadcast once per reservation.
+If the timeout and the sweep both reach the same reservation around the same time, whichever gets there first wins the status flip, the second one just no-ops. Stock only ever gets incremented back once.
 
-## Concurrency: how overselling is prevented
+## Overselling — the actual concurrency part
 
-The reserve endpoint uses a single **conditional atomic `UPDATE`**, not a read-then-write pattern or an application-level lock:
+The requirement was: 100 people click reserve on the last item at the same millisecond, only one gets it. The fix isn't a lock or a `SELECT ... FOR UPDATE` — it's letting Postgres do what it already does for any `UPDATE`:
 
 ```js
 const { count } = await tx.drop.updateMany({
@@ -142,8 +121,14 @@ const { count } = await tx.drop.updateMany({
 if (count === 0) throw new ApiError(409, "This item is out of stock");
 ```
 
-PostgreSQL takes a row-level lock for the duration of an `UPDATE`, so when many requests hit the same row at once, they're serialized by the database engine itself — each one re-evaluates `availableStock > 0` against the latest committed value, never a value read earlier in JS. The moment stock hits 0, every subsequent request's `WHERE` clause stops matching, `count` comes back `0`, and that request is rejected with `409`. No `SELECT ... FOR UPDATE`, no mutex, no retry loop.
+Every `UPDATE` takes a row lock while it runs, so concurrent requests against the same drop just queue up behind each other at the DB level — there's no window where two requests can both read "stock: 1" and both decide they're allowed to take it, because nobody's reading-then-writing in JS. Each request's `WHERE` clause gets checked against whatever the row actually looks like at that instant. Once availableStock hits 0, everyone after that gets `count: 0` and a 409.
 
-Verified with a real concurrency test: 5 simultaneous reserve requests against a drop with `totalStock: 1` — exactly 1 succeeded (`201`), the other 4 got `409`.
+I actually tested this instead of just trusting the theory — fired 5 concurrent reserve requests at a drop with `totalStock: 1`, got one `201` and four `409`s.
 
-The same conditional-`updateMany` pattern is reused for reservation expiry and purchase completion, so those are race-safe too (e.g. a reservation can't be purchased and expired at the same moment).
+Same trick handles the purchase step and the expiry step, since both of those are also "only let this succeed if the row is still in the state I expect."
+
+## What I'd do with more time
+
+- Right now `reserve` and `purchase` are separate endpoints, which is correct per the spec but means the reservation ownership check happens at purchase time rather than being baked into the URL. Fine at this scale, would probably scope it under `/users/:id/reservations` in a bigger app.
+- No rate limiting on reserve — a single user spamming the endpoint isn't handled specially, just relies on the same atomic check.
+- Deployment isn't done yet (was planning a small VPS instead of Vercel serverless, since Socket.io + long-lived timers don't fit well in a serverless model).
