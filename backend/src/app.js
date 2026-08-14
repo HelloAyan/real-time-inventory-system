@@ -12,6 +12,10 @@ export const app = express();
 app.use(cors({ origin: env.clientUrl }));
 app.use(express.json());
 
+app.get("/", (req, res) => {
+    res.send("Your backend server is running");
+});
+
 app.get("/health", (req, res) => res.json({ success: true, status: "ok" }));
 
 app.use("/api/auth", authRoutes);
